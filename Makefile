@@ -10,7 +10,7 @@ benchmark:
 	PYTHONPATH=src python3 -m diag.cli benchmark
 
 ui:
-	python3 -m http.server 8080
+	PYTHONPATH=src python3 web/server.py
 
 clean:
 	rm -rf run
