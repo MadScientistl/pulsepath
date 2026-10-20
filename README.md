@@ -13,6 +13,16 @@ make benchmark
 
 `make demo-fault` uses a deterministic stand-in for an instrumented multi-service demo under load: 12 minutes of raw spans/access logs, with a hidden payment-latency fault starting in minute five. Its inputs are emitted at `run/spans.json` and `run/proxy.jsonl`; the diagnoser reads only the former. The hidden label is deliberately kept in `run/hidden_truth.json`, outside the analyzer input.
 
+## Large synthetic corpus
+
+Generate a 28-service, 28-edge corpus with 60 minutes of traffic using:
+
+```sh
+make synthetic-large
+```
+
+The default produces roughly 196,000 raw spans and matching JSON-lines proxy records at `data/synthetic-large/`, with a hidden payment fault starting halfway through the run. It is ignored by Git. Increase volume deterministically with `PYTHONPATH=src python3 -m diag.cli generate-large --minutes 120 --requests-per-minute 1000`.
+
 For a live OpenTelemetry Demo/Online Boutique run, configure the collector's file exporter (`configs/otel-collector.yaml`) and invoke:
 
 ```sh

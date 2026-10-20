@@ -2,6 +2,7 @@ import unittest
 from diag.simulator import generate
 from diag.ingest import load_spans
 from diag.engine import report, percentile, burn_alert
+from diag.simulator import generate_large
 
 class DiagnosticsTest(unittest.TestCase):
  def test_percentile(self): self.assertEqual(percentile([1,2,3,4,5],.95),4)
@@ -15,5 +16,10 @@ class DiagnosticsTest(unittest.TestCase):
   generate("latency","/tmp/diag-latency",seed=5)
   r=report(load_spans("/tmp/diag-latency/spans.json"))
   self.assertEqual(r["ranking"][0]["suspected_component"],"payment")
+ def test_large_topology_contains_platform_edges(self):
+  generate_large("errors","/tmp/diag-large-test",minutes=4,requests_per_minute=20)
+  r=report(load_spans("/tmp/diag-large-test/spans.json"))
+  self.assertIn("payment->fraud",r["graph"])
+  self.assertGreaterEqual(len(r["graph"]),20)
 
 if __name__ == "__main__": unittest.main()
