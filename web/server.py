@@ -8,17 +8,24 @@ from urllib.parse import parse_qs, urlparse
 ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT/"src"))
 from diag.engine import report
 from diag.ingest import load_spans
-from diag.simulator import generate
+from diag.simulator import generate, generate_large
 SCENARIOS=("latency","errors","down","retry-storm")
-def payload(name):
+_CACHE={}
+def payload(name, large=False):
  if name not in SCENARIOS: raise ValueError(f"unknown scenario: {name}")
- out=ROOT/"run"/name;generate(name,str(out));data=report(load_spans(out/"spans.json"));truth=json.loads((out/"hidden_truth.json").read_text());data["scenario"]={"name":name,"fault_began_minute":truth["began_minute"]};return data
+ key=(name,large)
+ if key in _CACHE: return _CACHE[key]
+ out=ROOT/"run"/("large-"+name if large else name)
+ if large: generate_large(name,str(out),minutes=20,requests_per_minute=100)
+ else: generate(name,str(out))
+ data=report(load_spans(out/"spans.json"));truth=json.loads((out/"hidden_truth.json").read_text());data["scenario"]={"name":name,"fault_began_minute":truth["began_minute"],"large":large};_CACHE[key]=data;return data
 class Handler(SimpleHTTPRequestHandler):
  def __init__(self,*a,**kw):super().__init__(*a,directory=str(ROOT),**kw)
  def do_GET(self):
   parsed=urlparse(self.path)
   if parsed.path=="/api/diagnostics":
-   try: body=json.dumps(payload(parse_qs(parsed.query).get("scenario",["latency"])[0])).encode();status=HTTPStatus.OK
+   q=parse_qs(parsed.query);name=q.get("scenario",["latency"])[0];large=q.get("size",[""])[0]=="large"
+   try: body=json.dumps(payload(name,large)).encode();status=HTTPStatus.OK
    except ValueError as e: body=json.dumps({"error":str(e)}).encode();status=HTTPStatus.BAD_REQUEST
    self.send_response(status);self.send_header("Content-Type","application/json");self.send_header("Content-Length",str(len(body)));self.end_headers();self.wfile.write(body);return
   return super().do_GET()
