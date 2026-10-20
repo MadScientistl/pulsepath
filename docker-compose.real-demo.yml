@@ -1,0 +1,11 @@
+# Optional real-data harness. Point OTEL_DEMO_DIR at a checked-out OpenTelemetry Demo.
+# The core analyzer consumes raw span JSON exported by the collector; it does not query metrics.
+services:
+  toxiproxy:
+    image: ghcr.io/shopify/toxiproxy:2.9.0
+    ports: ["8474:8474"]
+  k6:
+    image: grafana/k6:0.54.0
+    profiles: [load]
+    volumes: ["./scripts/k6.js:/scripts/k6.js:ro"]
+    command: run /scripts/k6.js

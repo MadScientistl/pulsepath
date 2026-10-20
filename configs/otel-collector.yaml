@@ -1,0 +1,13 @@
+receivers:
+  otlp:
+    protocols:
+      grpc: {}
+      http: {}
+exporters:
+  file/raw_spans:
+    path: /data/otlp-spans.json
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [file/raw_spans]
