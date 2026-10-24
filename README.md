@@ -1,4 +1,8 @@
-# Integration diagnostics
+# Pulsepath
+
+![Pulsepath finding a latency fault in the payment service](docs/demo/02-root-cause.png)
+
+See [DEMO.md](DEMO.md) for a step-by-step walkthrough and a [demo GIF](docs/demo/pulsepath-demo.gif).
 
 This repository diagnoses degradation from **raw OpenTelemetry spans and proxy access logs**. It reconstructs a service dependency graph, calculates per-edge error rate and p50/p95/p99 from raw samples, applies SLO burn alerts, detects onset using a deterministic CUSUM, ranks likely roots deterministically, and estimates traffic-weighted blast radius.
 

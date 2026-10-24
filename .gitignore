@@ -3,3 +3,4 @@ __pycache__/
 run/
 .benchmark/
 data/synthetic-large/
+.DS_Store
