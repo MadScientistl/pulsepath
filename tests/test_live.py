@@ -34,7 +34,8 @@ class LiveClusterTest(unittest.TestCase):
                 r, md = self.run_fault(mode)
                 self.assertIn("checkout->payment", r["graph"])
                 ranked = [x["suspected_component"] for x in r["ranking"]]
-                self.assertIn("payment", ranked[:3])
+                detail = "\n".join(f"{x['edge']} score={x['score']} onset={x['onset_window']} {x['evidence']}" for x in r["ranking"][:6])
+                self.assertIn("payment", ranked[:3], f"{mode}: spans={r['live']['spans']}\n{detail}")
                 if STRICT:   # PULSEPATH_STRICT=1: exact top-1 on a quiet machine
                     self.assertEqual(ranked[0], "payment")
                 self.assertIsNotNone(r["live"]["detected_at_s"])
