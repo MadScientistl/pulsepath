@@ -5,6 +5,7 @@ from statistics import median
 from .model import Span, Edge
 
 WINDOW_MS = 60_000
+INCIDENT_SCORE = 15.0  # minimum cause score reported as an incident; chosen from observed healthy-baseline jitter (~5)
 
 def percentile(xs: list[float], p: float) -> float:
     """Nearest-rank percentile over values reconstructed from raw spans."""

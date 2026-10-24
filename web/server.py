@@ -31,6 +31,8 @@ class Handler(SimpleHTTPRequestHandler):
    except ValueError as e: body=json.dumps({"error":str(e)}).encode();status=HTTPStatus.BAD_REQUEST
    self.send_response(status);self.send_header("Content-Type","application/json");self.send_header("Content-Length",str(len(body)));self.end_headers();self.wfile.write(body);return
   if parsed.path=="/api/live/report": return self._json(LIVE.snapshot(int(parse_qs(parsed.query).get("window",["2"])[0])))
+  if parsed.path=="/api/live/incident.md":
+   body=LIVE.incident_report().encode();self.send_response(HTTPStatus.OK);self.send_header("Content-Type","text/markdown; charset=utf-8");self.send_header("Content-Disposition","attachment; filename=incident-report.md");self.send_header("Content-Length",str(len(body)));self.end_headers();self.wfile.write(body);return
   return super().do_GET()
  def _json(self,obj,status=HTTPStatus.OK):
   body=json.dumps(obj).encode();self.send_response(status);self.send_header("Content-Type","application/json");self.send_header("Content-Length",str(len(body)));self.end_headers();self.wfile.write(body)

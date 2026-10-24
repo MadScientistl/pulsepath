@@ -47,7 +47,7 @@ function populate(h){if(populated)return;populated=true;$('svc').innerHTML=Objec
 function paint(d){data=d;const L=d.live,rank=d.ranking||[],top=rank[0],incident=top&&top.score>=DETECT,inj=L.injected;
  $('status').textContent=!L.running?'stopped':incident?'incident':L.spans<400?'warming up':'healthy';$('spans').textContent=L.spans.toLocaleString();$('elapsed').textContent=Math.round(L.elapsed_s)+'s';$('win').textContent=L.window_s+'s windows';
  ['stop','clear','inject'].forEach(i=>$(i).disabled=!L.running);$('start').disabled=L.running;
- if(!L.running||!inj)detectedAt=incident?detectedAt:null;if(incident&&detectedAt==null&&L.running)detectedAt=L.elapsed_s;if(!L.running)detectedAt=null;
+ detectedAt=L.detected_at_s;
  if(Object.keys(L.health).length)populate(L.health);
  if(!L.running){set('Find the cause,','see the impact.');$('v-sub').textContent='Nine real services, real traffic, real spans. The analyzer is never told what you break.'}
  else if(L.spans<400){set('Learning what normal looks like,','hold on.');$('v-sub').innerHTML=`${L.spans} spans so far. Give it ~20 seconds before breaking something, so there is a baseline to compare against.`}

@@ -22,4 +22,13 @@ class DiagnosticsTest(unittest.TestCase):
   self.assertIn("payment->fraud",r["graph"])
   self.assertGreaterEqual(len(r["graph"]),20)
 
+
+from diag.incident import incident_markdown
+class IncidentReportTest(unittest.TestCase):
+ def test_report_names_root_and_healthy_state(self):
+  generate("latency","/tmp/diag-md",seed=5); r=report(load_spans("/tmp/diag-md/spans.json"))
+  md=incident_markdown(r,15,60)
+  self.assertIn("Suspected root cause:** `payment`",md); self.assertIn("## Ranked suspects",md)
+  self.assertIn("no incident detected",incident_markdown({"ranking":[]}))
+
 if __name__ == "__main__": unittest.main()

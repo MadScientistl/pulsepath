@@ -3,7 +3,8 @@ from __future__ import annotations
 import json, os, random, subprocess, sys, threading, time, urllib.request, uuid
 from collections import defaultdict
 from pathlib import Path
-from ..engine import report, per_window
+from ..engine import report, per_window, INCIDENT_SCORE
+from ..incident import incident_markdown
 from ..model import Span
 from .topology import SERVICES, url_of
 
@@ -84,24 +85,24 @@ class LiveSession:
     def __init__(self, root: Path, collector_url: str):
         self.collector = Collector(root / "run" / "live")
         self.cluster, self.load = Cluster(collector_url), LoadGen(self.collector)
-        self.started = self.injected = None; self.running = False
+        self.started = self.injected = self.detected_at = None; self.running = False; self.last = None
         self.lock = threading.Lock()
     def start(self, rps: float = 25):
         with self.lock:
             if self.running: return
             self.collector.reset(); self.cluster.start(); self.load.rps = rps; self.load.start()
-            self.started, self.injected, self.running = time.time(), None, True
+            self.started, self.injected, self.detected_at, self.running = time.time(), None, None, True
     def stop(self):
         with self.lock:
             if not self.running: return
             self.load.stop(); time.sleep(.6); self.cluster.stop(); self.running = False
     def inject(self, service: str, mode: str):
         if not self.running or service not in SERVICES or mode not in FAULTS: raise ValueError("bad fault request")
-        self.cluster.set_fault(service, mode); self.injected = {"service": service, "mode": mode, "at": time.time()}
+        self.detected_at = None; self.cluster.set_fault(service, mode); self.injected = {"service": service, "mode": mode, "at": time.time()}
     def clear(self):
         if not self.running: return
         for name in SERVICES: self.cluster.set_fault(name, "none")
-        self.injected = None
+        self.injected = self.detected_at = None
     def snapshot(self, window_s: int = 2) -> dict:
         rows = self.collector.snapshot(); spans = [Span(**{k: r.get(k) for k in FIELDS}) for r in rows]
         window_ms = window_s * 1000
@@ -112,11 +113,17 @@ class LiveSession:
             for edge, m in edges.items():
                 series[edge].append({"t": (t - t0) / 1000, "p99": m.p99_ms, "p50": m.p50_ms, "err": m.error_rate, "calls": m.calls})
         data["series"] = series
-        data["live"] = {"running": self.running, "elapsed_s": round(time.time() - self.started, 1) if self.started else 0,
+        top = data["ranking"][0] if data["ranking"] else None
+        if self.running and self.detected_at is None and top and top["score"] >= INCIDENT_SCORE: self.detected_at = round(time.time() - self.started, 1)
+        data["live"] = {"detected_at_s": self.detected_at, "threshold": INCIDENT_SCORE, "running": self.running, "elapsed_s": round(time.time() - self.started, 1) if self.started else 0,
                         "spans": len(spans), "window_s": window_s, "health": self.cluster.health() if self.running else {},
                         "injected": ({**self.injected, "at_s": round(self.injected["at"] - self.started, 1)} if self.injected else None),
                         "traces": self._traces(rows)}
+        self.last = data
         return data
+    def incident_report(self) -> str:
+        data = self.last or self.snapshot(); live = data["live"]
+        return incident_markdown(data, INCIDENT_SCORE, live["window_s"], live["injected"], live["detected_at_s"])
     def _traces(self, rows: list[dict], n: int = 8) -> list[dict]:
         by = defaultdict(list)
         for r in rows[-1500:]: by[r["trace_id"]].append(r)

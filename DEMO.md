@@ -39,7 +39,9 @@ Wait about 20 seconds. The analyzer is learning what normal latency looks like f
 
 The green line at the left ("Ground truth") compares the answer with what you injected. The analyzer never sees that value.
 
-**4. Reset and try another.** Press **Clear faults**, then inject a different fault or target a different service.
+**4. Export the incident record.** Press **Incident report** in the left rail to download a Markdown report: summary, ranked suspects, blast radius, SLO alerts, recommended next steps and, for the demo, whether the diagnosis matched what you injected.
+
+**5. Reset and try another.** Press **Clear faults**, then inject a different fault or target a different service.
 
 ## What to look at
 
