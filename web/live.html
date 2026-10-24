@@ -1,16 +1,23 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pulsepath Live Cluster</title><link rel="stylesheet" href="dashboard.css"><link rel="stylesheet" href="live.css"></head><body>
-<header class="top"><div class="brand">pulse<b>path</b></div><span class="mode">LIVE CLUSTER / REAL SERVICES</span><a class="nav" href="../index.html">Synthetic explorer</a><span id="status">● CLUSTER STOPPED</span></header>
-<main>
-<section class="ctl card">
- <div class="ctl-row"><button id="start" class="primary">Start cluster + load</button><button id="stop">Stop</button><span class="hint" id="hint">9 real HTTP services, one OS process each, driven by a load generator.</span></div>
- <div class="ctl-row"><label>Inject fault into <select id="svc"></select></label><label>mode <select id="mode"><option value="latency">Latency (+350ms)</option><option value="errors">Errors (35% HTTP 500)</option><option value="retry-storm">Retry storm (60% 503, slow)</option><option value="down">Down (kill process)</option></select></label><button id="inject" class="warn">Inject</button><button id="clear">Clear faults</button></div>
-</section>
-<section class="verdict card" id="verdict"><span class="kicker">DIAGNOSIS</span><h2 id="v-title">Start the cluster to begin</h2><p id="v-sub">The analyzer reads only raw spans emitted by the services. It is never told what you injected.</p><div id="v-truth"></div></section>
-<section class="grid">
- <article class="card"><div class="card-title"><h2>Services</h2><span id="elapsed">—</span></div><div id="nodes" class="nodes"></div></article>
- <article class="card"><div class="card-title"><h2>Edge telemetry</h2><span>RAW SPANS · <b id="win">2</b>s WINDOWS</span></div><table id="edges"><thead><tr><th>edge</th><th>calls</th><th>err</th><th>p50</th><th>p99</th><th>p99 trend</th></tr></thead><tbody></tbody></table></article>
- <article class="card"><div class="card-title"><h2>Cause stack</h2><span>DETERMINISTIC</span></div><div id="ranks"></div><div class="card-title sub"><h2>Blast radius</h2><span>TRAFFIC WEIGHTED</span></div><div id="blast"></div></article>
- <article class="card wide"><div class="card-title"><h2>Live traces</h2><span>LATEST USER REQUESTS</span></div><div id="traces"></div></article>
-</section>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pulsepath Live Cluster</title><link rel="stylesheet" href="live.css"></head><body>
+<aside class="rail">
+ <div class="brand"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><g fill="currentColor"><circle cx="3" cy="3" r="1.4"/><circle cx="9" cy="3" r="1.4"/><circle cx="15" cy="3" r="1.4"/><circle cx="6" cy="9" r="1.4"/><circle cx="12" cy="9" r="1.4"/><circle cx="9" cy="15" r="1.4"/></g></svg>pulsepath</div>
+ <div class="rail-body">
+  <h1 id="h-main">Find the cause, <em>see the impact.</em></h1>
+  <p id="v-sub">Nine real services, real traffic, real spans. The analyzer is never told what you break.</p>
+  <p id="v-truth" class="truth"></p>
+  <div class="pills"><button id="start" class="pill">⏵ Start cluster</button><button id="stop" class="pill">■ Stop</button><button id="clear" class="pill">↺ Clear faults</button><a class="pill" href="../index.html">Synthetic explorer</a></div>
+  <div class="meter"><div><small>STATUS</small><b id="status">stopped</b></div><div><small>SPANS</small><b id="spans">0</b></div><div><small>ELAPSED</small><b id="elapsed">0s</b></div></div>
+ </div>
+ <div class="prompt">
+  <div class="prompt-top"><span>Break</span><select id="svc" aria-label="Service"></select><span>with</span><select id="mode" aria-label="Fault mode"><option value="latency">latency +350ms</option><option value="errors">35% errors</option><option value="retry-storm">retry storm</option><option value="down">process down</option></select></div>
+  <div class="prompt-bottom"><span class="hint">Fault goes live instantly. Watch the graph react.</span><button id="inject" class="go" aria-label="Inject fault">↵</button></div>
+ </div>
+</aside>
+<main class="stage">
+ <section class="tile chart-tile"><div class="tile-head"><h2>Edge tracking</h2><div class="seg" id="metric"><button class="on" data-m="p99">p99 latency</button><button data-m="err">error rate</button></div></div><div id="chart" class="chart"><svg id="plot" viewBox="0 0 900 300" preserveAspectRatio="none"></svg><div id="tip" class="tip"></div></div><div id="legend" class="legend"></div></section>
+ <section class="tile"><div class="tile-head"><h2>Services</h2><span id="win" class="tag">2s windows</span></div><div id="nodes" class="nodes"></div></section>
+ <section class="tile"><div class="tile-head"><h2>Cause stack</h2><span class="tag">deterministic</span></div><div id="ranks"></div><div class="tile-head sub"><h2>Blast radius</h2><span class="tag">traffic weighted</span></div><div id="blast"></div></section>
+ <section class="tile wide"><div class="tile-head"><h2>Edge telemetry</h2><span class="tag">raw spans</span></div><table id="edges"><thead><tr><th>edge</th><th>calls</th><th>errors</th><th>p50</th><th>p99</th></tr></thead><tbody></tbody></table></section>
+ <section class="tile wide"><div class="tile-head"><h2>Live traces</h2><span class="tag">latest user requests</span></div><div id="traces"></div></section>
 </main><script src="live.js"></script></body></html>
