@@ -69,11 +69,15 @@ def rank_root_causes(spans: list[Span], window_ms: int = WINDOW_MS) -> list[dict
         es=[s for s in spans if s.peer and f"{s.service}->{s.peer}" == edge]
         retry=sum(s.retries for s in es)/len(es)
         baseline=median(p99s[:max(3,len(p99s)//3)]) or 1.0
-        latency_lift=max(0.0, m.p99_ms/baseline-1.0)
+        # Score the sustained change after onset, not whole-run aggregates: a one-off blip on an otherwise
+        # healthy edge returns to baseline and is dropped, while a real fault stays elevated.
+        err=sum(rates[onset:])/len(rates[onset:]); p99_post=median(p99s[onset:])
+        if err < .03 and p99_post - baseline < 20.0: continue
+        latency_lift=max(0.0, p99_post/baseline-1.0)
         # earlier onset wins; position favours failures with many callers.
         target=edge.split("->",1)[1]
-        score=100*m.error_rate + 10*retry + 8*latency_lift + 3*incoming[target] + (len(rates)-onset)/max(1,len(rates))
-        candidates.append({"edge":edge,"suspected_component":target,"score":round(score,4),"onset_window":onset,"evidence":{"error_rate":m.error_rate,"retry_mean":retry,"p99_ms":m.p99_ms,"p99_lift":round(latency_lift,3)}})
+        score=100*err + 10*retry + 8*latency_lift + 3*incoming[target] + (len(rates)-onset)/max(1,len(rates))
+        candidates.append({"edge":edge,"suspected_component":target,"score":round(score,4),"onset_window":onset,"evidence":{"error_rate":err,"retry_mean":retry,"p99_ms":round(p99_post,2),"p99_lift":round(latency_lift,3)}})
     # Callers of a failing service inherit its errors and latency. If an edge's target has its own genuinely
     # degraded outgoing edge that started no later than one window after this one, this edge is a symptom.
     by_source = defaultdict(list)
