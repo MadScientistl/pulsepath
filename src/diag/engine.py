@@ -74,6 +74,15 @@ def rank_root_causes(spans: list[Span], window_ms: int = WINDOW_MS) -> list[dict
         target=edge.split("->",1)[1]
         score=100*m.error_rate + 10*retry + 8*latency_lift + 3*incoming[target] + (len(rates)-onset)/max(1,len(rates))
         candidates.append({"edge":edge,"suspected_component":target,"score":round(score,4),"onset_window":onset,"evidence":{"error_rate":m.error_rate,"retry_mean":retry,"p99_ms":m.p99_ms,"p99_lift":round(latency_lift,3)}})
+    # Callers of a failing service inherit its errors and latency. If an edge's target has its own genuinely
+    # degraded outgoing edge that started no later than one window after this one, this edge is a symptom.
+    by_source = defaultdict(list)
+    for c in candidates: by_source[c["edge"].split("->",1)[0]].append(c)
+    raw = {c["edge"]: c["score"] for c in candidates}
+    for c in candidates:
+        deeper = [d for d in by_source.get(c["suspected_component"], []) if raw[d["edge"]] >= INCIDENT_SCORE and d["onset_window"] <= c["onset_window"] + 1]
+        if deeper:
+            c["score"] = round(c["score"] * 0.5, 4); c["evidence"]["symptom_of"] = min(d["edge"] for d in deeper)
     return sorted(candidates, key=lambda x:(-x["score"], x["edge"]))
 
 def blast_radius(spans: list[Span], root: str) -> list[dict]:
