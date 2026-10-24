@@ -28,9 +28,9 @@ def edge_metrics(spans: list[Span]) -> dict[str, EdgeMetrics]:
         out[k] = EdgeMetrics(len(ss), errors, errors/len(ss), percentile(ds,.50), percentile(ds,.95), percentile(ds,.99))
     return out
 
-def per_window(spans: list[Span]) -> dict[int, dict[str, EdgeMetrics]]:
+def per_window(spans: list[Span], window_ms: int = WINDOW_MS) -> dict[int, dict[str, EdgeMetrics]]:
     buckets: dict[int, list[Span]] = defaultdict(list)
-    for s in spans: buckets[s.start_ms // WINDOW_MS * WINDOW_MS].append(s)
+    for s in spans: buckets[s.start_ms // window_ms * window_ms].append(s)
     return {t: edge_metrics(v) for t,v in sorted(buckets.items())}
 
 def cusum_change(values: list[float], threshold: float = 0.03) -> int | None:
@@ -50,9 +50,9 @@ def burn_alert(error_rates: list[float], objective: float=.99) -> bool:
     def mean(v): return sum(v)/len(v) if v else 0
     return mean(error_rates[-5:])/budget >= 14.4 and mean(error_rates[-60:])/budget >= 14.4
 
-def rank_root_causes(spans: list[Span]) -> list[dict]:
+def rank_root_causes(spans: list[Span], window_ms: int = WINDOW_MS) -> list[dict]:
     """No ML/LLM: rank by failure onset, error, retry amplification, and upstream graph position."""
-    graph = dependency_graph(spans); metrics = edge_metrics(spans); windows = per_window(spans)
+    graph = dependency_graph(spans); metrics = edge_metrics(spans); windows = per_window(spans, window_ms)
     nodes = {e.source for e in graph} | {e.target for e in graph}
     incoming = {n: 0 for n in nodes}
     for e in graph: incoming[e.target] += 1
@@ -98,7 +98,7 @@ def blast_radius(spans: list[Span], root: str) -> list[dict]:
             if prev not in seen: seen.add(prev); q.append((prev,d+1)); result.append({"application":prev,"hops":d+1,"observed_calls":traffic[prev],"traffic_weight":traffic[prev]/max(1,sum(traffic.values()))})
     return sorted(result,key=lambda x:(-x["traffic_weight"],x["application"]))
 
-def report(spans: list[Span]) -> dict:
-    wm=per_window(spans); ranks=rank_root_causes(spans); root=ranks[0]["suspected_component"] if ranks else None
+def report(spans: list[Span], window_ms: int = WINDOW_MS) -> dict:
+    wm=per_window(spans, window_ms); ranks=rank_root_causes(spans, window_ms); root=ranks[0]["suspected_component"] if ranks else None
     by_edge={k:[v.get(k,EdgeMetrics(0,0,0,0,0,0)).error_rate for v in wm.values()] for k in edge_metrics(spans)}
     return {"graph":sorted(e.key() for e in dependency_graph(spans)),"edge_metrics":{k:asdict(v) for k,v in edge_metrics(spans).items()},"slo_alerts":{k:burn_alert(v) for k,v in by_edge.items()},"ranking":ranks,"blast_radius":blast_radius(spans,root) if root else []}

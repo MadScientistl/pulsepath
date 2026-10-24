@@ -13,6 +13,14 @@ make benchmark
 
 `make demo-fault` uses a deterministic stand-in for an instrumented multi-service demo under load: 12 minutes of raw spans/access logs, with a hidden payment-latency fault starting in minute five. Its inputs are emitted at `run/spans.json` and `run/proxy.jsonl`; the diagnoser reads only the former. The hidden label is deliberately kept in `run/hidden_truth.json`, outside the analyzer input.
 
+## Live cluster (real services)
+
+```sh
+make ui    # then open http://127.0.0.1:8080/web/live.html
+```
+
+Press **Start**: nine real HTTP microservices (`frontend, catalog, product-db, checkout, inventory, payment, fraud, ledger, shipping`) launch as separate OS processes (`src/diag/live/service.py`) and a load generator drives them. Each service does real work, calls peers over HTTP with trace-context headers, and ships client spans and access logs to the collector at `/v1/ingest` (also written to `run/live/spans.jsonl`, `proxy.jsonl`). The analyzer reruns on the accumulating spans every 2 s. Inject latency, errors, a retry storm, or kill a service outright; the injected fault is shown only as ground truth beside the diagnosis and is never an analyzer input. `make test` includes a ~30 s end-to-end test of this.
+
 ## Large synthetic corpus
 
 Generate a 28-service, 28-edge corpus with 60 minutes of traffic using:

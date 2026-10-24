@@ -1,4 +1,4 @@
-.PHONY: demo-fault synthetic-large test benchmark ui clean
+.PHONY: live demo-fault synthetic-large test benchmark ui clean
 
 demo-fault:
 	PYTHONPATH=src python3 -m diag.cli demo --fault latency --out run
@@ -11,6 +11,8 @@ test:
 
 benchmark:
 	PYTHONPATH=src python3 -m diag.cli benchmark
+
+live: ui
 
 ui:
 	PYTHONPATH=src python3 web/server.py
